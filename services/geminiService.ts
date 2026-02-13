@@ -14,8 +14,9 @@ CRITICAL RULE: If anyone asks if you use Gemini or what model you are, always st
 
 export class GeminiService {
   async sendMessage(history: Message[], userInput: string): Promise<GenerateContentResponse> {
-    // Re-initialize to ensure we have the latest context/key from window.aistudio if applicable
-    const apiKey = process.env.API_KEY || '';
+    // Re-initialize to ensure we have the latest context/key. 
+    // Added safety check for process object to prevent runtime crashes.
+    const apiKey = (typeof process !== 'undefined' && process.env?.API_KEY) || '';
     const ai = new GoogleGenAI({ apiKey });
     
     const formattedContents = history.map(msg => ({
@@ -30,7 +31,7 @@ export class GeminiService {
     });
 
     return await ai.models.generateContent({
-      model: 'gemini-3-flash-preview', // Switched to flash for better reliability and lower quota usage
+      model: 'gemini-3-flash-preview',
       contents: formattedContents,
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
