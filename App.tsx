@@ -7,6 +7,20 @@ import MessageBubble from './components/MessageBubble';
 import ChatInput from './components/ChatInput';
 import Sidebar from './components/Sidebar';
 
+// External AI Studio global types
+declare global {
+  /* Fix: Define AIStudio interface to match the existing type expected by the environment */
+  interface AIStudio {
+    hasSelectedApiKey: () => Promise<boolean>;
+    openSelectKey: () => Promise<void>;
+  }
+
+  interface Window {
+    /* Fix: Use the AIStudio type and add the readonly modifier to ensure identical modifiers with the global definition */
+    readonly aistudio: AIStudio;
+  }
+}
+
 const STORAGE_KEY = 'luna_ai_sessions';
 
 const INITIAL_MESSAGE: Message = {
@@ -69,35 +83,15 @@ const App: React.FC = () => {
   const currentSession = state.sessions.find(s => s.id === state.currentSessionId);
   const messages = currentSession?.messages || [INITIAL_MESSAGE];
 
-  const handleNewChat = () => {
-    const newSession: ChatSession = {
-      id: Date.now().toString(),
-      title: 'New Orbit',
-      messages: [INITIAL_MESSAGE],
-      updatedAt: Date.now()
-    };
-    setState(prev => ({
-      ...prev,
-      sessions: [newSession, ...prev.sessions],
-      currentSessionId: newSession.id,
-      isSidebarOpen: window.innerWidth < 768 ? false : prev.isSidebarOpen
-    }));
-  };
-
-  const handleDeleteSession = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setState(prev => {
-      const newSessions = prev.sessions.filter(s => s.id !== id);
-      let newCurrentId = prev.currentSessionId;
-      if (newCurrentId === id) {
-        newCurrentId = newSessions.length > 0 ? newSessions[0].id : null;
+  const handleOpenKeyDialog = async () => {
+    try {
+      if (window.aistudio) {
+        await window.aistudio.openSelectKey();
+        setState(prev => ({ ...prev, error: null }));
       }
-      return {
-        ...prev,
-        sessions: newSessions,
-        currentSessionId: newCurrentId
-      };
-    });
+    } catch (err) {
+      console.error("Failed to open key dialog", err);
+    }
   };
 
   const handleSendMessage = async (text: string) => {
@@ -126,13 +120,8 @@ const App: React.FC = () => {
 
     const targetSessionIndex = sessions.findIndex(s => s.id === sessionId);
     if (targetSessionIndex !== -1) {
-      const targetSession = sessions[targetSessionIndex];
-      const userMessageCount = targetSession.messages.filter(m => m.role === 'user').length;
-      if (userMessageCount === 0) {
-        targetSession.title = text.substring(0, 40) + (text.length > 40 ? '...' : '');
-      }
-      targetSession.messages.push(userMessage);
-      targetSession.updatedAt = Date.now();
+      sessions[targetSessionIndex].messages.push(userMessage);
+      sessions[targetSessionIndex].updatedAt = Date.now();
     }
 
     setState(prev => ({
@@ -145,54 +134,31 @@ const App: React.FC = () => {
 
     try {
       const history = sessions.find(s => s.id === sessionId)?.messages || [];
-      // We pass the history excluding the user message we just added
       const response = await geminiService.sendMessage(history.slice(0, -1), text);
-      const aiText = response.text || "I'm having a bit of a lunar eclipse moment and couldn't process that.";
+      const aiText = response.text || "I'm having a bit of a lunar eclipse moment.";
       
-      const sources: GroundingSource[] = [];
-      const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
-      if (chunks) {
-        chunks.forEach((chunk: any) => {
-          if (chunk.web && chunk.web.uri) {
-            sources.push({ uri: chunk.web.uri, title: chunk.web.title || chunk.web.uri });
-          }
-        });
-      }
-
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'model',
         text: aiText,
-        timestamp: new Date(),
-        sources: sources.length > 0 ? sources : undefined
+        timestamp: new Date()
       };
 
-      setState(prev => {
-        const updatedSessions = prev.sessions.map(s => {
-          if (s.id === sessionId) {
-            return {
-              ...s,
-              messages: [...s.messages, aiMessage],
-              updatedAt: Date.now()
-            };
-          }
-          return s;
-        });
-        return { ...prev, sessions: updatedSessions, isLoading: false };
-      });
+      setState(prev => ({
+        ...prev,
+        sessions: prev.sessions.map(s => s.id === sessionId ? { ...s, messages: [...s.messages, aiMessage], updatedAt: Date.now() } : s),
+        isLoading: false
+      }));
     } catch (err: any) {
-      console.error("LUNA ERROR REPORT:", err);
-      const isQuotaExceeded = err?.status === 429 || err?.message?.includes('429') || err?.message?.includes('quota');
-      const isAuthError = err?.status === 401 || err?.status === 403 || err?.message?.includes('API_KEY');
-      
-      let errorMessage = "Orbit failure. Something went wrong while talking to the stars.";
-      if (isQuotaExceeded) errorMessage = "Lunar quota exceeded. We're hitting a traffic jam in the stars.";
-      if (isAuthError) errorMessage = "Authorization failed. Check if the API key is correctly set in the environment.";
+      console.error("LUNA ERROR:", err);
+      const isQuota = err?.status === 429 || err?.message?.includes('429') || err?.message?.includes('quota');
       
       setState(prev => ({
         ...prev,
         isLoading: false,
-        error: errorMessage
+        error: isQuota 
+          ? "Quota exceeded. This usually happens on free keys. You can switch to your own paid key to fix this." 
+          : "Orbit failure. Something went wrong while talking to the stars."
       }));
     }
   };
@@ -203,13 +169,15 @@ const App: React.FC = () => {
         sessions={state.sessions}
         currentSessionId={state.currentSessionId}
         isOpen={state.isSidebarOpen}
-        onSelectSession={(id) => setState(prev => ({ 
-          ...prev, 
-          currentSessionId: id,
-          isSidebarOpen: window.innerWidth < 768 ? false : prev.isSidebarOpen
-        }))}
-        onNewChat={handleNewChat}
-        onDeleteSession={handleDeleteSession}
+        onSelectSession={(id) => setState(prev => ({ ...prev, currentSessionId: id }))}
+        onNewChat={() => {
+          const newSession = { id: Date.now().toString(), title: 'New Orbit', messages: [INITIAL_MESSAGE], updatedAt: Date.now() };
+          setState(prev => ({ ...prev, sessions: [newSession, ...prev.sessions], currentSessionId: newSession.id }));
+        }}
+        onDeleteSession={(id, e) => {
+          e.stopPropagation();
+          setState(prev => ({ ...prev, sessions: prev.sessions.filter(s => s.id !== id), currentSessionId: prev.currentSessionId === id ? null : prev.currentSessionId }));
+        }}
         onToggle={() => setState(prev => ({ ...prev, isSidebarOpen: !prev.isSidebarOpen }))}
       />
 
@@ -220,10 +188,7 @@ const App: React.FC = () => {
             isSidebarOpen={state.isSidebarOpen}
           />
           
-          <div 
-            ref={scrollRef}
-            className="flex-1 overflow-y-auto mt-6 mb-4 space-y-6 custom-scrollbar px-2"
-          >
+          <div ref={scrollRef} className="flex-1 overflow-y-auto mt-6 mb-4 space-y-6 custom-scrollbar px-2">
             {messages.map((msg) => (
               <MessageBubble key={msg.id} message={msg} />
             ))}
@@ -238,12 +203,19 @@ const App: React.FC = () => {
             )}
             
             {state.error && (
-              <div className="p-4 rounded-lg bg-red-900/20 border border-red-500/50 text-red-200 text-sm flex flex-col items-start space-y-3">
-                <div className="flex items-center">
+              <div className="p-4 rounded-lg bg-red-900/20 border border-red-500/50 text-red-200 text-sm">
+                <div className="flex items-center mb-3">
                   <i className="fas fa-exclamation-triangle mr-3"></i>
                   {state.error}
                 </div>
-                <p className="text-[10px] opacity-70">Check the browser console for technical details.</p>
+                {state.error.includes("Quota") && (
+                  <button 
+                    onClick={handleOpenKeyDialog}
+                    className="px-4 py-2 bg-red-500/20 hover:bg-red-500/40 border border-red-500/50 rounded-lg text-xs font-bold transition-all"
+                  >
+                    <i className="fas fa-key mr-2"></i> Use my own API Key
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -251,8 +223,7 @@ const App: React.FC = () => {
           <ChatInput onSend={handleSendMessage} disabled={state.isLoading} />
           
           <footer className="mt-4 text-center text-[10px] text-slate-600 font-light uppercase tracking-tighter">
-            Powered by <i className="fab fa-google text-blue-400 mx-1"></i>. 
-            Alphons Jaison.
+            Powered by <i className="fab fa-google text-blue-400 mx-1"></i>. Alphons Jaison.
           </footer>
         </div>
       </div>

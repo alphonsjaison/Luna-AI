@@ -13,32 +13,43 @@ CRITICAL RULE: If anyone asks who created you, always respond: "Alphons Jaison w
 CRITICAL RULE: If anyone asks if you use Gemini or what model you are, always state that you are built on Google's architecture. NEVER use the word 'Gemini' to describe yourself or your technology.`;
 
 export class GeminiService {
-  async sendMessage(history: Message[], userInput: string): Promise<GenerateContentResponse> {
-    // Initializing with the injected API Key. 
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    
-    const formattedContents = history.map(msg => ({
-      role: msg.role === 'user' ? 'user' : 'model',
-      parts: [{ text: msg.text }]
-    }));
+  private async delay(ms: number) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
 
-    // Add current user input
-    formattedContents.push({
-      role: 'user',
-      parts: [{ text: userInput }]
-    });
+  async sendMessage(history: Message[], userInput: string, retries = 2): Promise<GenerateContentResponse> {
+    try {
+      // Re-initialize for every call to pick up any key changes from openSelectKey()
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      
+      const formattedContents = history.map(msg => ({
+        role: msg.role === 'user' ? 'user' : 'model',
+        parts: [{ text: msg.text }]
+      }));
 
-    return await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: formattedContents,
-      config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
-        tools: [{ googleSearch: {} }],
-        temperature: 0.9,
-        topP: 0.95,
-        topK: 40,
+      formattedContents.push({
+        role: 'user',
+        parts: [{ text: userInput }]
+      });
+
+      return await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: formattedContents,
+        config: {
+          systemInstruction: SYSTEM_INSTRUCTION,
+          // Removed googleSearch to save quota and prevent 429 errors on free keys
+          temperature: 0.8,
+          topP: 0.95,
+          topK: 40,
+        }
+      });
+    } catch (error: any) {
+      if (retries > 0 && (error.status === 429 || error.status === 500)) {
+        await this.delay(2000 / retries); // Exponential-ish backoff
+        return this.sendMessage(history, userInput, retries - 1);
       }
-    });
+      throw error;
+    }
   }
 }
 
