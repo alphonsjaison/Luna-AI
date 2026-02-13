@@ -25,7 +25,7 @@ const STORAGE_KEY = 'luna_ai_sessions';
 const INITIAL_MESSAGE: Message = {
   id: 'initial',
   role: 'model',
-  text: "From the moon's perspective, things are looking pretty bright down there. I'm Luna. I'm witty, I'm honest, and I don't do fluff. What's on your mind?",
+  text: "From the moon's perspective, things are looking pretty bright down there. I'm Luna. What's on your mind?",
   timestamp: new Date()
 };
 

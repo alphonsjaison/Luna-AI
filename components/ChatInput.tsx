@@ -81,7 +81,7 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSend, disabled }) => {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Ask Luna something... (truth hurts, humor helps)"
+          placeholder="Ask Luna something..."
           className="w-full bg-slate-900 border border-slate-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-2xl px-5 py-4 pr-28 text-sm text-slate-200 resize-none h-16 transition-all custom-scrollbar outline-none"
           disabled={disabled}
         />
