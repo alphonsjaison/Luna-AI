@@ -29,7 +29,16 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
               ? 'bg-blue-700 text-white rounded-tr-none' 
               : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-tl-none'
           }`}>
-            <p className="whitespace-pre-wrap">{message.text}</p>
+            {message.image && (
+              <div className="mb-3">
+                <img 
+                  src={`data:${message.image.mimeType};base64,${message.image.data}`} 
+                  alt="Sent attachment" 
+                  className="max-w-full rounded-lg border border-white/10"
+                />
+              </div>
+            )}
+            {message.text && <p className="whitespace-pre-wrap">{message.text}</p>}
             
             {!isUser && message.sources && message.sources.length > 0 && (
               <div className="mt-3 pt-3 border-t border-slate-800">

@@ -6,12 +6,18 @@ export interface GroundingSource {
   title: string;
 }
 
+export interface MessageImage {
+  data: string; // base64 string
+  mimeType: string;
+}
+
 export interface Message {
   id: string;
   role: Role;
   text: string;
   timestamp: Date;
   sources?: GroundingSource[];
+  image?: MessageImage;
 }
 
 export interface ChatSession {

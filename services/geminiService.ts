@@ -17,19 +17,45 @@ export class GeminiService {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
-  async sendMessage(history: Message[], userInput: string, retries = 2): Promise<GenerateContentResponse> {
+  async sendMessage(
+    history: Message[], 
+    userInput: string, 
+    image?: { data: string, mimeType: string },
+    retries = 2
+  ): Promise<GenerateContentResponse> {
     try {
-      // Re-initialize for every call to pick up any key changes from openSelectKey()
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       
-      const formattedContents = history.map(msg => ({
-        role: msg.role === 'user' ? 'user' : 'model',
-        parts: [{ text: msg.text }]
-      }));
+      const formattedContents = history.map(msg => {
+        const parts: any[] = [{ text: msg.text }];
+        if (msg.image) {
+          parts.push({
+            inlineData: {
+              data: msg.image.data,
+              mimeType: msg.image.mimeType
+            }
+          });
+        }
+        return {
+          role: msg.role === 'user' ? 'user' : 'model',
+          parts
+        };
+      });
+
+      // Prepare current message parts
+      const currentParts: any[] = [{ text: userInput }];
+      if (image) {
+        currentParts.push({
+          inlineData: {
+            data: image.data,
+            mimeType: image.mimeType
+          }
+        });
+      }
 
       formattedContents.push({
         role: 'user',
-        parts: [{ text: userInput }]
+        parts: currentParts
       });
 
       return await ai.models.generateContent({
@@ -37,7 +63,6 @@ export class GeminiService {
         contents: formattedContents,
         config: {
           systemInstruction: SYSTEM_INSTRUCTION,
-          // Removed googleSearch to save quota and prevent 429 errors on free keys
           temperature: 0.8,
           topP: 0.95,
           topK: 40,
@@ -45,8 +70,8 @@ export class GeminiService {
       });
     } catch (error: any) {
       if (retries > 0 && (error.status === 429 || error.status === 500)) {
-        await this.delay(2000 / retries); // Exponential-ish backoff
-        return this.sendMessage(history, userInput, retries - 1);
+        await this.delay(2000 / retries);
+        return this.sendMessage(history, userInput, image, retries - 1);
       }
       throw error;
     }

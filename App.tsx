@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Message, ChatState, Role, GroundingSource, ChatSession } from './types';
+import { Message, ChatState, Role, GroundingSource, ChatSession, MessageImage } from './types';
 import { geminiService } from './services/geminiService';
 import Header from './components/Header';
 import MessageBubble from './components/MessageBubble';
@@ -9,15 +9,14 @@ import Sidebar from './components/Sidebar';
 
 // External AI Studio global types
 declare global {
-  /* Fix: Define AIStudio interface to match the existing type expected by the environment */
   interface AIStudio {
     hasSelectedApiKey: () => Promise<boolean>;
     openSelectKey: () => Promise<void>;
   }
 
   interface Window {
-    /* Fix: Use the AIStudio type and add the readonly modifier to ensure identical modifiers with the global definition */
-    readonly aistudio: AIStudio;
+    // FIX: Removed readonly to fix "All declarations of 'aistudio' must have identical modifiers" error.
+    aistudio: AIStudio;
   }
 }
 
@@ -67,6 +66,20 @@ const App: React.FC = () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state.sessions));
   }, [state.sessions]);
 
+  // FIX: Added mandatory check for API key selection on mount as per guidelines.
+  useEffect(() => {
+    const checkKey = async () => {
+      if (window.aistudio) {
+        const hasKey = await window.aistudio.hasSelectedApiKey();
+        if (!hasKey) {
+          // Mandatory step before accessing the main app.
+          await window.aistudio.openSelectKey();
+        }
+      }
+    };
+    checkKey();
+  }, []);
+
   const scrollToBottom = useCallback(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTo({
@@ -94,8 +107,8 @@ const App: React.FC = () => {
     }
   };
 
-  const handleSendMessage = async (text: string) => {
-    if (!text.trim() || state.isLoading) return;
+  const handleSendMessage = async (text: string, image?: MessageImage) => {
+    if ((!text.trim() && !image) || state.isLoading) return;
 
     let sessionId = state.currentSessionId;
     let sessions = [...state.sessions];
@@ -103,7 +116,7 @@ const App: React.FC = () => {
     if (!sessionId) {
       const newSession: ChatSession = {
         id: Date.now().toString(),
-        title: text.substring(0, 30) + (text.length > 30 ? '...' : ''),
+        title: text ? (text.substring(0, 30) + (text.length > 30 ? '...' : '')) : 'Image Transmission',
         messages: [],
         updatedAt: Date.now()
       };
@@ -115,6 +128,7 @@ const App: React.FC = () => {
       id: Date.now().toString(),
       role: 'user',
       text,
+      image,
       timestamp: new Date()
     };
 
@@ -134,7 +148,8 @@ const App: React.FC = () => {
 
     try {
       const history = sessions.find(s => s.id === sessionId)?.messages || [];
-      const response = await geminiService.sendMessage(history.slice(0, -1), text);
+      // Pass the current text and image along with history (excluding the user message just added to avoid duplicate current turn)
+      const response = await geminiService.sendMessage(history.slice(0, -1), text, image);
       const aiText = response.text || "I'm having a bit of a lunar eclipse moment.";
       
       const aiMessage: Message = {
@@ -152,13 +167,21 @@ const App: React.FC = () => {
     } catch (err: any) {
       console.error("LUNA ERROR:", err);
       const isQuota = err?.status === 429 || err?.message?.includes('429') || err?.message?.includes('quota');
+      // FIX: Handle "Requested entity was not found" error by prompting user to select key again.
+      const isNotFound = err?.message?.includes("Requested entity was not found");
+
+      if (isNotFound && window.aistudio) {
+        await window.aistudio.openSelectKey();
+      }
       
       setState(prev => ({
         ...prev,
         isLoading: false,
         error: isQuota 
           ? "Quota exceeded. This usually happens on free keys. You can switch to your own paid key to fix this." 
-          : "Orbit failure. Something went wrong while talking to the stars."
+          : isNotFound
+            ? "API Key error: Requested entity not found. Please select a valid key from a paid project."
+            : "Orbit failure. Something went wrong while talking to the stars."
       }));
     }
   };
@@ -208,7 +231,7 @@ const App: React.FC = () => {
                   <i className="fas fa-exclamation-triangle mr-3"></i>
                   {state.error}
                 </div>
-                {state.error.includes("Quota") && (
+                {(state.error.includes("Quota") || state.error.includes("Key") || state.error.includes("API")) && (
                   <button 
                     onClick={handleOpenKeyDialog}
                     className="px-4 py-2 bg-red-500/20 hover:bg-red-500/40 border border-red-500/50 rounded-lg text-xs font-bold transition-all"
