@@ -6,7 +6,6 @@ import Header from './components/Header';
 import MessageBubble from './components/MessageBubble';
 import ChatInput from './components/ChatInput';
 import Sidebar from './components/Sidebar';
-import { Analytics } from '@vercel/analytics/react';
 
 // External AI Studio global types
 declare global {
@@ -16,8 +15,8 @@ declare global {
   }
 
   interface Window {
-    // FIX: Removed readonly to fix "All declarations of 'aistudio' must have identical modifiers" error.
-    aistudio: AIStudio;
+    // Fixed: Added readonly modifier to match the environment's pre-configured declaration
+    readonly aistudio: AIStudio;
   }
 }
 
@@ -67,14 +66,17 @@ const App: React.FC = () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state.sessions));
   }, [state.sessions]);
 
-  // FIX: Added mandatory check for API key selection on mount as per guidelines.
+  // Mandatory check for API key selection on mount
   useEffect(() => {
     const checkKey = async () => {
       if (window.aistudio) {
-        const hasKey = await window.aistudio.hasSelectedApiKey();
-        if (!hasKey) {
-          // Mandatory step before accessing the main app.
-          await window.aistudio.openSelectKey();
+        try {
+          const hasKey = await window.aistudio.hasSelectedApiKey();
+          if (!hasKey) {
+            await window.aistudio.openSelectKey();
+          }
+        } catch (err) {
+          console.error("Key selection check failed", err);
         }
       }
     };
@@ -149,7 +151,6 @@ const App: React.FC = () => {
 
     try {
       const history = sessions.find(s => s.id === sessionId)?.messages || [];
-      // Pass the current text and image along with history (excluding the user message just added to avoid duplicate current turn)
       const response = await geminiService.sendMessage(history.slice(0, -1), text, image);
       const aiText = response.text || "I'm having a bit of a lunar eclipse moment.";
       
@@ -168,7 +169,6 @@ const App: React.FC = () => {
     } catch (err: any) {
       console.error("LUNA ERROR:", err);
       const isQuota = err?.status === 429 || err?.message?.includes('429') || err?.message?.includes('quota');
-      // FIX: Handle "Requested entity was not found" error by prompting user to select key again.
       const isNotFound = err?.message?.includes("Requested entity was not found");
 
       if (isNotFound && window.aistudio) {
@@ -179,9 +179,9 @@ const App: React.FC = () => {
         ...prev,
         isLoading: false,
         error: isQuota 
-          ? "Quota exceeded. This usually happens on free keys. You can switch to your own paid key to fix this." 
+          ? "Luna is currently taking a lunar nap. The stars are a bit crowded right now (Quota Exceeded)." 
           : isNotFound
-            ? "API Key error: Requested entity not found. Please select a valid key from a paid project."
+            ? "Luna's orbital path is blocked (API Key not found). Please select a valid star-gate (API Key)."
             : "Orbit failure. Something went wrong while talking to the stars."
       }));
     }
@@ -227,17 +227,31 @@ const App: React.FC = () => {
             )}
             
             {state.error && (
-              <div className="p-4 rounded-lg bg-red-900/20 border border-red-500/50 text-red-200 text-sm">
-                <div className="flex items-center mb-3">
-                  <i className="fas fa-exclamation-triangle mr-3"></i>
-                  {state.error}
+              <div className={`p-4 rounded-xl border ${
+                state.error.includes("nap") || state.error.includes("Quota")
+                ? "bg-indigo-950/30 border-indigo-500/50 text-indigo-200"
+                : "bg-red-900/20 border-red-500/50 text-red-200"
+              } text-sm transition-all animate-in fade-in zoom-in-95`}>
+                <div className="flex items-start mb-4">
+                  <div className="mr-4 mt-1">
+                    {state.error.includes("nap") ? (
+                      <i className="fas fa-bed text-xl opacity-80"></i>
+                    ) : (
+                      <i className="fas fa-exclamation-triangle text-xl opacity-80"></i>
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium mb-1">Star System Alert</p>
+                    <p className="opacity-90">{state.error}</p>
+                  </div>
                 </div>
-                {(state.error.includes("Quota") || state.error.includes("Key") || state.error.includes("API")) && (
+                
+                {(state.error.includes("nap") || state.error.includes("Quota") || state.error.includes("Key")) && (
                   <button 
                     onClick={handleOpenKeyDialog}
-                    className="px-4 py-2 bg-red-500/20 hover:bg-red-500/40 border border-red-500/50 rounded-lg text-xs font-bold transition-all"
+                    className="w-full sm:w-auto px-6 py-2.5 bg-indigo-500 hover:bg-indigo-400 text-white rounded-lg text-xs font-bold transition-all flex items-center justify-center shadow-lg shadow-indigo-500/20"
                   >
-                    <i className="fas fa-key mr-2"></i> Use my own API Key
+                    <i className="fas fa-star mr-2"></i> Wake Luna with Star-Power (Add API Key)
                   </button>
                 )}
               </div>
@@ -251,7 +265,6 @@ const App: React.FC = () => {
           </footer>
         </div>
       </div>
-      <Analytics />
     </div>
   );
 };

@@ -1,3 +1,4 @@
+
 {
   "name": "luna-ai",
   "private": true,
@@ -10,7 +11,6 @@
   },
   "dependencies": {
     "@google/genai": "^1.41.0",
-    "@vercel/analytics": "^1.6.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
