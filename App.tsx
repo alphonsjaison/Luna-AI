@@ -15,8 +15,8 @@ declare global {
   }
 
   interface Window {
-    // Fixed: Added readonly modifier to match the environment's pre-configured declaration
-    readonly aistudio: AIStudio;
+    // FIX: Making 'aistudio' optional to ensure identical modifiers across all global declarations.
+    aistudio?: AIStudio;
   }
 }
 
@@ -179,9 +179,9 @@ const App: React.FC = () => {
         ...prev,
         isLoading: false,
         error: isQuota 
-          ? "Luna is currently taking a lunar nap. The stars are a bit crowded right now (Quota Exceeded)." 
+          ? "Luna is currently taking a lunar nap. The stars are a bit crowded right now." 
           : isNotFound
-            ? "Luna's orbital path is blocked (API Key not found). Please select a valid star-gate (API Key)."
+            ? "Luna's orbital path is blocked. Please select a valid star-gate."
             : "Orbit failure. Something went wrong while talking to the stars."
       }));
     }
@@ -246,12 +246,12 @@ const App: React.FC = () => {
                   </div>
                 </div>
                 
-                {(state.error.includes("nap") || state.error.includes("Quota") || state.error.includes("Key")) && (
+                {(state.error.includes("nap") || state.error.includes("Quota") || state.error.includes("orbital")) && (
                   <button 
                     onClick={handleOpenKeyDialog}
                     className="w-full sm:w-auto px-6 py-2.5 bg-indigo-500 hover:bg-indigo-400 text-white rounded-lg text-xs font-bold transition-all flex items-center justify-center shadow-lg shadow-indigo-500/20"
                   >
-                    <i className="fas fa-star mr-2"></i> Wake Luna with Star-Power (Add API Key)
+                    <i className="fas fa-star mr-2"></i> Wake Luna with Star-Power
                   </button>
                 )}
               </div>

@@ -121,9 +121,6 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSend, disabled }) => {
         <p className="text-[10px] text-slate-600 font-medium italic">
           Luna can now "see" your images. Send them with a question.
         </p>
-        <p className="text-[10px] text-slate-600 font-medium">
-          Shift + Enter for new line
-        </p>
       </div>
     </div>
   );
