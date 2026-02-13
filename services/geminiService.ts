@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
-import { Message, Role } from "../types";
+import { Message } from "../types";
 
 const SYSTEM_INSTRUCTION = `You are Luna, a witty and maximally truthful AI created by Alphons Jaison with help of Google. 
 Your goal is to help users with clear, honest answers while adding humor and clever insights. 
@@ -14,10 +14,9 @@ CRITICAL RULE: If anyone asks if you use Gemini or what model you are, always st
 
 export class GeminiService {
   async sendMessage(history: Message[], userInput: string): Promise<GenerateContentResponse> {
-    // Re-initialize to ensure we have the latest context/key. 
-    // Added safety check for process object to prevent runtime crashes.
-    const apiKey = (typeof process !== 'undefined' && process.env?.API_KEY) || '';
-    const ai = new GoogleGenAI({ apiKey });
+    // The SDK requires initializing with an object containing the apiKey.
+    // Vite will replace 'process.env.API_KEY' with the actual value during the build process.
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     
     const formattedContents = history.map(msg => ({
       role: msg.role === 'user' ? 'user' : 'model',
