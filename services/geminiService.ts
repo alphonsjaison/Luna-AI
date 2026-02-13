@@ -14,8 +14,7 @@ CRITICAL RULE: If anyone asks if you use Gemini or what model you are, always st
 
 export class GeminiService {
   async sendMessage(history: Message[], userInput: string): Promise<GenerateContentResponse> {
-    // The SDK requires initializing with an object containing the apiKey.
-    // Vite will replace 'process.env.API_KEY' with the actual value during the build process.
+    // Initializing with the injected API Key. 
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     
     const formattedContents = history.map(msg => ({

@@ -17,13 +17,11 @@ const INITIAL_MESSAGE: Message = {
 };
 
 const App: React.FC = () => {
-  // Persistence Loading
   const loadSessions = (): ChatSession[] => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (!saved) return [];
     try {
       const parsed = JSON.parse(saved);
-      // Revive dates
       return parsed.map((s: any) => ({
         ...s,
         messages: s.messages.map((m: any) => ({
@@ -51,7 +49,6 @@ const App: React.FC = () => {
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Persistence Saving
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state.sessions));
   }, [state.sessions]);
@@ -148,6 +145,7 @@ const App: React.FC = () => {
 
     try {
       const history = sessions.find(s => s.id === sessionId)?.messages || [];
+      // We pass the history excluding the user message we just added
       const response = await geminiService.sendMessage(history.slice(0, -1), text);
       const aiText = response.text || "I'm having a bit of a lunar eclipse moment and couldn't process that.";
       
@@ -183,11 +181,13 @@ const App: React.FC = () => {
         return { ...prev, sessions: updatedSessions, isLoading: false };
       });
     } catch (err: any) {
-      console.error("Gemini Error:", err);
-      const isQuotaExceeded = err?.message?.includes('429') || err?.message?.includes('quota');
-      const errorMessage = isQuotaExceeded 
-        ? "Lunar quota exceeded. We're hitting a traffic jam in the stars."
-        : "Orbit failure. Something went wrong while talking to the stars.";
+      console.error("LUNA ERROR REPORT:", err);
+      const isQuotaExceeded = err?.status === 429 || err?.message?.includes('429') || err?.message?.includes('quota');
+      const isAuthError = err?.status === 401 || err?.status === 403 || err?.message?.includes('API_KEY');
+      
+      let errorMessage = "Orbit failure. Something went wrong while talking to the stars.";
+      if (isQuotaExceeded) errorMessage = "Lunar quota exceeded. We're hitting a traffic jam in the stars.";
+      if (isAuthError) errorMessage = "Authorization failed. Check if the API key is correctly set in the environment.";
       
       setState(prev => ({
         ...prev,
@@ -243,6 +243,7 @@ const App: React.FC = () => {
                   <i className="fas fa-exclamation-triangle mr-3"></i>
                   {state.error}
                 </div>
+                <p className="text-[10px] opacity-70">Check the browser console for technical details.</p>
               </div>
             )}
           </div>
