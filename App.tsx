@@ -6,6 +6,7 @@ import Header from './components/Header';
 import MessageBubble from './components/MessageBubble';
 import ChatInput from './components/ChatInput';
 import Sidebar from './components/Sidebar';
+import { Analytics } from '@vercel/analytics/react';
 
 // External AI Studio global types
 declare global {
@@ -250,6 +251,7 @@ const App: React.FC = () => {
           </footer>
         </div>
       </div>
+      <Analytics />
     </div>
   );
 };
