@@ -15,7 +15,6 @@ declare global {
   }
 
   interface Window {
-    // FIX: Making 'aistudio' optional to ensure identical modifiers across all global declarations.
     aistudio?: AIStudio;
   }
 }
@@ -65,23 +64,6 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state.sessions));
   }, [state.sessions]);
-
-  // Mandatory check for API key selection on mount
-  useEffect(() => {
-    const checkKey = async () => {
-      if (window.aistudio) {
-        try {
-          const hasKey = await window.aistudio.hasSelectedApiKey();
-          if (!hasKey) {
-            await window.aistudio.openSelectKey();
-          }
-        } catch (err) {
-          console.error("Key selection check failed", err);
-        }
-      }
-    };
-    checkKey();
-  }, []);
 
   const scrollToBottom = useCallback(() => {
     if (scrollRef.current) {
@@ -180,9 +162,7 @@ const App: React.FC = () => {
         isLoading: false,
         error: isQuota 
           ? "Luna is currently taking a lunar nap. The stars are a bit crowded right now." 
-          : isNotFound
-            ? "Luna's orbital path is blocked. Please select a valid star-gate."
-            : "Orbit failure. Something went wrong while talking to the stars."
+          : "Orbit failure. Something went wrong while talking to the stars."
       }));
     }
   };
@@ -227,18 +207,10 @@ const App: React.FC = () => {
             )}
             
             {state.error && (
-              <div className={`p-4 rounded-xl border ${
-                state.error.includes("nap") || state.error.includes("Quota")
-                ? "bg-indigo-950/30 border-indigo-500/50 text-indigo-200"
-                : "bg-red-900/20 border-red-500/50 text-red-200"
-              } text-sm transition-all animate-in fade-in zoom-in-95`}>
+              <div className="p-4 rounded-xl border bg-indigo-950/30 border-indigo-500/50 text-indigo-200 text-sm transition-all animate-in fade-in zoom-in-95">
                 <div className="flex items-start mb-4">
                   <div className="mr-4 mt-1">
-                    {state.error.includes("nap") ? (
-                      <i className="fas fa-bed text-xl opacity-80"></i>
-                    ) : (
-                      <i className="fas fa-exclamation-triangle text-xl opacity-80"></i>
-                    )}
+                    <i className="fas fa-bed text-xl opacity-80"></i>
                   </div>
                   <div className="flex-1">
                     <p className="font-medium mb-1">Star System Alert</p>
@@ -246,14 +218,12 @@ const App: React.FC = () => {
                   </div>
                 </div>
                 
-                {(state.error.includes("nap") || state.error.includes("Quota") || state.error.includes("orbital")) && (
-                  <button 
-                    onClick={handleOpenKeyDialog}
-                    className="w-full sm:w-auto px-6 py-2.5 bg-indigo-500 hover:bg-indigo-400 text-white rounded-lg text-xs font-bold transition-all flex items-center justify-center shadow-lg shadow-indigo-500/20"
-                  >
-                    <i className="fas fa-star mr-2"></i> Wake Luna with Star-Power
-                  </button>
-                )}
+                <button 
+                  onClick={handleOpenKeyDialog}
+                  className="w-full sm:w-auto px-6 py-2.5 bg-indigo-500 hover:bg-indigo-400 text-white rounded-lg text-xs font-bold transition-all flex items-center justify-center shadow-lg shadow-indigo-500/20"
+                >
+                  <i className="fas fa-star mr-2"></i> Wake Luna with Star-Power
+                </button>
               </div>
             )}
           </div>

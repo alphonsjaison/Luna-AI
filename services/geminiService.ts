@@ -57,7 +57,7 @@ export class GeminiService {
       });
 
       return await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-flash-lite-latest',
         contents: formattedContents,
         config: {
           systemInstruction: SYSTEM_INSTRUCTION,
