@@ -1,4 +1,3 @@
-[README.md](https://github.com/user-attachments/files/25769788/README.md)
 # 🌙 Luna AI
 
 > An AI assistant built for clarity, honesty, and real conversations.
