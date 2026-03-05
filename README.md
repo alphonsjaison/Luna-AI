@@ -1,20 +1,122 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+[README.md](https://github.com/user-attachments/files/25769788/README.md)
+# 🌙 Luna AI
 
-# Run and deploy your AI Studio app
+> An AI assistant built for clarity, honesty, and real conversations.
 
-This contains everything you need to run your app locally.
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-luna--ai--plum.vercel.app-blueviolet?style=for-the-badge&logo=vercel)](https://luna-ai-plum.vercel.app)
+[![TypeScript](https://img.shields.io/badge/TypeScript-94.7%25-3178c6?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
+[![Powered by Gemini](https://img.shields.io/badge/Powered%20by-Google%20Gemini-4285F4?style=for-the-badge&logo=google)](https://ai.google.dev/)
+[![Vite](https://img.shields.io/badge/Build-Vite-646cff?style=for-the-badge&logo=vite)](https://vitejs.dev/)
 
-View your app in AI Studio: https://ai.studio/apps/drive/1fZFFWRh5z53d4a80RNy2GLnpMAZZ_ctl
+---
 
-## Run Locally
+## ✨ Overview
 
-**Prerequisites:**  Node.js
+Luna AI is a conversational AI web application powered by Google's Gemini API. Designed with a focus on truthfulness and helpfulness, Luna provides direct, accurate, and thoughtful responses in a clean, modern interface.
 
+---
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## 🚀 Live Demo
+
+👉 [luna-ai-plum.vercel.app](https://luna-ai-plum.vercel.app)
+
+---
+
+## 🛠️ Tech Stack
+
+| Technology | Role |
+|---|---|
+| **React + TypeScript** | Frontend framework |
+| **Vite** | Build tool & dev server |
+| **Google Gemini API** | AI language model |
+| **Vercel** | Deployment & hosting |
+
+---
+
+## 📦 Getting Started
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) (v18 or higher recommended)
+- A [Google Gemini API key](https://aistudio.google.com/app/apikey)
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/alphonsjaison/Luna-AI.git
+   cd Luna-AI
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Set up your API key**
+
+   Create a `.env.local` file in the root directory and add your Gemini API key:
+   ```env
+   GEMINI_API_KEY=your_gemini_api_key_here
+   ```
+
+4. **Start the development server**
+   ```bash
+   npm run dev
+   ```
+
+   The app will be available at `http://localhost:5173`.
+
+---
+
+## 📁 Project Structure
+
+```
+Luna-AI/
+├── components/        # Reusable UI components
+├── services/          # API service layer (Gemini integration)
+├── App.tsx            # Root application component
+├── index.tsx          # Entry point
+├── index.html         # HTML template
+├── types.ts           # TypeScript type definitions
+├── vite.config.ts     # Vite configuration
+├── tsconfig.json      # TypeScript configuration
+└── package.json       # Project dependencies
+```
+
+---
+
+## 🔑 Environment Variables
+
+| Variable | Description |
+|---|---|
+| `GEMINI_API_KEY` | Your Google Gemini API key (required) |
+
+---
+
+## 🌐 Deployment
+
+This project is deployed on **Vercel**. To deploy your own instance:
+
+1. Fork this repository
+2. Import the project into [Vercel](https://vercel.com)
+3. Add `GEMINI_API_KEY` as an environment variable in Vercel's project settings
+4. Deploy!
+
+---
+
+## 👤 Author
+
+**Alphons Jaison**
+
+- GitHub: [@alphonsjaison](https://github.com/alphonsjaison)
+
+---
+
+## 📄 License
+
+This project is open source. Feel free to use and modify it for your own purposes.
+
+---
+
+<p align="center">Made with ❤️ by Alphons Jaison</p>
